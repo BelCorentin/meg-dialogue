@@ -22,6 +22,20 @@ class ChatLLM:
         if cfg.system_prompt:
             self.history.append({"role": "system", "content": cfg.system_prompt})
 
+    def warm(self) -> None:
+        """Load the model and keep it resident: a cold Ollama model cost ~1.5 s on the first turn,
+        and Ollama unloads idle models after 5 min by default."""
+        if "11434" in self.cfg.base_url:  # Ollama native API: no prompt = load only
+            import json
+            import urllib.request
+
+            url = self.cfg.base_url.removesuffix("/v1").rstrip("/") + "/api/generate"
+            body = json.dumps({"model": self.cfg.model, "keep_alive": -1}).encode()
+            req = urllib.request.Request(url, body, {"Content-Type": "application/json"})
+            urllib.request.urlopen(req, timeout=300).read()
+        self.client.chat.completions.create(model=self.cfg.model, max_tokens=1,
+                                            messages=self.history + [{"role": "user", "content": "Bonjour."}])
+
     def stream_sentences(self, user_text: str, on_first_token: Callable[[], None] | None = None) -> Iterator[str]:
         self.history.append({"role": "user", "content": user_text})
         stream = self.client.chat.completions.create(

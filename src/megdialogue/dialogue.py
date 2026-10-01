@@ -78,6 +78,7 @@ def main() -> None:
     stt = make_stt(cfg.stt, cfg.language)
     tts = make_tts(cfg.tts)
     llm = ChatLLM(cfg.llm)
+    llm.warm()  # load + pin in VRAM, and prime the system-prompt cache
     vad = TurnDetector(cfg.vad)
     log.log("models_loaded")
 
