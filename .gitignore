@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+# participant voice + session logs: never commit
+data/
+runs/
+models/
