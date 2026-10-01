@@ -1,7 +1,8 @@
-.venv/
+/.venv
 __pycache__/
 *.pyc
 # participant voice + session logs: never commit
-data/
-runs/
+/data
+/runs
 models/
+.claude/

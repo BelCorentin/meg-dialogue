@@ -1,0 +1,37 @@
+# Laptop prototype (RTX PRO 1000, 8 GB). English first: no espeak-ng needed for Kokoro.
+language: en
+
+vad:
+  threshold: 0.5
+  min_silence_ms: 600
+  min_speech_ms: 250
+  speech_pad_ms: 150
+
+stt:
+  model: large-v3-turbo   # 369 ms median on scanner answers here; "small" = 115 ms
+  compute_type: float16
+
+llm:
+  base_url: http://localhost:11434/v1
+  model: qwen2.5:7b
+  temperature: 0.7
+  max_tokens: 160
+  seed: 0
+  system_prompt: >
+    You are having a relaxed spoken conversation with a participant in a brain-imaging
+    experiment. Your words are converted to speech, so: reply in one to three short
+    sentences, plain spoken English, no lists, no markdown, no emojis. Be warm, curious and
+    concrete; share a small opinion or anecdote of your own, then often ask one open
+    question that invites the person to keep talking. Never mention being an AI unless asked.
+
+tts:
+  backend: kokoro
+  voice: af_heart
+  lang_code: a
+  speed: 1.0
+
+audio:
+  in_rate: 16000
+  block: 512
+  input_device: null
+  output_device: null
