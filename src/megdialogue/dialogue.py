@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import os
 import threading
 import time
 from pathlib import Path
@@ -52,6 +53,8 @@ def main() -> None:
     ap.add_argument("--mute-mic", action="store_true", help="ignore the real mic (use with --inject)")
     a = ap.parse_args()
     cfg = Config.load(a.config)
+    if cfg.offline:
+        os.environ["HF_HUB_OFFLINE"] = os.environ["TRANSFORMERS_OFFLINE"] = "1"
     inject = None
     if a.inject:
         import numpy as np

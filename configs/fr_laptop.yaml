@@ -1,0 +1,39 @@
+# Laptop prototype, French. Kokoro FR = one voice (ff_siwis), needs espeak-ng.
+language: fr
+
+vad:
+  threshold: 0.5
+  min_silence_ms: 600
+  min_speech_ms: 250
+  speech_pad_ms: 150
+
+stt:
+  model: large-v3-turbo
+  compute_type: float16
+
+llm:
+  base_url: http://localhost:11434/v1
+  model: gemma3:4b
+  temperature: 0.7
+  max_tokens: 120
+  seed: 0
+  system_prompt: >
+    Tu as une conversation orale détendue avec une personne qui participe à une expérience
+    d'imagerie cérébrale. Tes phrases sont lues par une voix de synthèse, donc : réponds en
+    une à trois phrases courtes, en français parlé naturel, sans listes, sans markdown, sans
+    emojis, sans abréviations. Sois chaleureux, curieux et concret : donne un petit avis ou
+    une anecdote à toi, puis pose souvent une seule question ouverte qui invite la personne
+    à continuer de parler. Tutoie seulement si la personne te tutoie. Ne dis pas que tu es
+    une IA sauf si on te le demande.
+
+tts:
+  backend: kokoro
+  voice: ff_siwis
+  lang_code: f
+  speed: 1.0
+
+audio:
+  in_rate: 16000
+  block: 512
+  input_device: null
+  output_device: null

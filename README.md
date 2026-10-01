@@ -53,6 +53,31 @@ uv run scripts/check_session.py runs/<session>
 
 Use wired output. Bluetooth adds 150–250 ms and stalled the stream in testing.
 
+French: `sudo apt install espeak-ng`, then `--config configs/fr_laptop.yaml`.
+
+## Offline machine
+
+Sessions run with `offline: true` (default): `HF_HUB_OFFLINE=1`, so a missing model
+fails at startup instead of downloading mid-experiment.
+
+On a connected machine:
+
+```bash
+uv run scripts/prefetch.py configs/*.yaml   # fills caches, then re-loads everything offline
+```
+
+Copy to the experiment machine (USB / internal network), same OS + Python 3.12:
+
+| what | from |
+|---|---|
+| this repo | `git bundle` or the clone |
+| Python wheels | `~/.cache/uv` → then `uv sync --offline` |
+| STT + TTS weights | `~/.cache/huggingface/hub` (`models--*whisper*`, `models--hexgrad--Kokoro-82M`) |
+| LLM | `ollama` binary + its model dir (`/usr/share/ollama/.ollama/models` for the systemd service, else `~/.ollama/models`) |
+| system | `espeak-ng` .deb (`apt-get download espeak-ng espeak-ng-data libespeak-ng1`) |
+
+Then `uv run scripts/prefetch.py` is not needed; check with a session using `--mute-mic --inject`.
+
 ## Results so far (2026-10-01, laptop RTX PRO 1000 8 GB)
 
 **STT on scanner-mic recordings** (77 MindSentences overt answers, sub-001..003, English).

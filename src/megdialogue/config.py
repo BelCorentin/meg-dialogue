@@ -63,6 +63,7 @@ class Config:
     tts: TTSConfig = field(default_factory=TTSConfig)
     audio: AudioConfig = field(default_factory=AudioConfig)
     runs_dir: str = "runs"
+    offline: bool = True  # HF_HUB_OFFLINE=1: a missing model fails at startup, never downloads mid-session
 
     @classmethod
     def load(cls, path: str | Path) -> "Config":
