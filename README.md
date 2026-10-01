@@ -105,6 +105,12 @@ VAD silence 608 · STT ~310 · LLM→1st sentence 130–340 · TTS 95–190 ms. 
 match the first non-zero output sample exactly (internal consistency only, not acoustic
 truth). 1 xrun in 82 s.
 
+**French live loop** (gemma3:4b, Kokoro `ff_siwis`, 3 synthesized utterances injected):
+all transcribed correctly; response gap **1.38–1.47 s**; replies carry an opinion or
+anecdote plus one question. qwen2.5:3b in French: blander, and 2.6 s on the first turn
+before the LLM was pinned at startup (`llm.warm()`). On clean audio the VAD speech end
+lands +72–87 ms after the true energy end.
+
 Not yet measured: acoustic end of speech vs VAD (needs forced alignment, since the injected
 recordings carry noise to file end); French; anything in the scanner.
 

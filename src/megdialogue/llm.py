@@ -46,7 +46,7 @@ class ChatLLM:
             seed=self.cfg.seed,
             stream=True,
         )
-        buf, full = "", ""
+        buf, full, n_out = "", "", 0
         for chunk in stream:
             delta = (chunk.choices[0].delta.content or "") if chunk.choices else ""
             if not delta:
@@ -55,8 +55,11 @@ class ChatLLM:
                 on_first_token()
             buf += delta
             full += delta
-            while m := (_SENT_END.search(buf) or (len(buf) > 80 and _CLAUSE.search(buf, 40))):
+            # clause breaks only for the first chunk (latency); later chunks are whole sentences,
+            # since each chunk is synthesized separately and intonation resets at chunk edges
+            while m := (_SENT_END.search(buf) or (not n_out and len(buf) > 80 and _CLAUSE.search(buf, 40))):
                 if s := _clean(buf[: m.end()]):
+                    n_out += 1
                     yield s
                 buf = buf[m.end():]
         if s := _clean(buf):
