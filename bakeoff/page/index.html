@@ -1,0 +1,290 @@
+<title>MEG Voice Blind Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of listening trials (sentence × voice), a sticky progress strip,
+   results revealed below. Palette drawn from a lab bench: paper with a cold blue cast, ink blue. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --ink: #18202b;
+  --muted: #5d6877;
+  --line: #d8dee6;
+  --accent: #2947c9;
+  --accent-soft: #e4e9fb;
+  --good: #1f7a4d;
+  --warn: #9a5b00;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #161d27; --ink: #e5eaf1; --muted: #93a0b1; --line: #263142;
+    --accent: #8ea2ff; --accent-soft: #1e2847; --good: #5fd39a; --warn: #f0b45a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161d27; --ink: #e5eaf1; --muted: #93a0b1; --line: #263142;
+  --accent: #8ea2ff; --accent-soft: #1e2847; --good: #5fd39a; --warn: #f0b45a; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 32px 64px; display: grid; gap: 28px; }
+h1, h2 { font-family: var(--font-body); font-weight: 600; text-wrap: balance; margin: 0; }
+h1 { font-size: 1.7rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; }
+p { margin: 0; max-width: 65ch; }
+.lede { display: grid; gap: 10px; color: var(--muted); }
+.lede strong { color: var(--ink); font-weight: 600; }
+.scale { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.85rem; color: var(--muted); }
+.scale b { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
+.strip { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--bg);
+  padding-block: 10px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.bar { flex: 1 1 200px; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; min-width: 0; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.count { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.save { font-size: 0.8rem; color: var(--muted); }
+.save.err { color: var(--warn); }
+.trials { display: grid; gap: 18px; }
+.trial { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; }
+.trial-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.sentence { font-family: var(--font-display); font-style: italic; font-size: 1.2rem; line-height: 1.35; min-width: 0; flex: 1 1 300px; }
+.voice { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); white-space: nowrap; }
+.clips { display: grid; gap: 6px; }
+.clip { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.clip:first-child { border-top: 0; }
+.play { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  font-family: var(--font-mono); font-size: 0.9rem; cursor: pointer; display: grid; place-items: center; }
+.play:hover { border-color: var(--accent); }
+.play.on { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.play:focus-visible, .rate button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.track { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; min-width: 0; }
+.track > i { display: block; height: 100%; width: 0; background: var(--accent); }
+.rate { display: flex; gap: 4px; }
+.rate button { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer; }
+.rate button:hover { border-color: var(--accent); color: var(--ink); }
+.rate button.sel { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.results { display: grid; gap: 14px; }
+.btn { justify-self: start; border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 8px;
+  padding: 8px 14px; font: inherit; font-weight: 500; cursor: pointer; }
+.btn:hover { background: var(--accent-soft); }
+.note { font-size: 0.85rem; color: var(--muted); }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 500; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+th.num { text-align: right; }
+.mos { display: flex; align-items: center; gap: 8px; }
+.mos i { display: inline-block; height: 8px; background: var(--accent); border-radius: 2px; }
+.empty { color: var(--muted); font-style: italic; }
+@media (max-width: 520px) {
+  .clip { grid-template-columns: auto 1fr; }
+  .rate { grid-column: 1 / -1; justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="lede">
+    <h1>MEG Voice Blind Test</h1>
+    <p>French voices for the scanner conversation partner. Each sentence below was spoken by several speech engines with the same two reference voices. Engine names are hidden and the order is shuffled for each listener.</p>
+    <p><strong>Rate each clip:</strong> would this sound like a real person if it were talking to you in the scanner?</p>
+    <div class="scale"><span><b>1</b> robotic</span><span><b>2</b> clearly synthetic</span><span><b>3</b> acceptable</span><span><b>4</b> nearly human</span><span><b>5</b> human</span></div>
+    <p class="note">Use headphones. Clips are matched in loudness. Your ratings save as you go.</p>
+  </header>
+
+  <div class="strip" aria-live="polite">
+    <div class="bar" role="progressbar" aria-label="Rating progress"><i id="barFill"></i></div>
+    <span class="count" id="count">0 / 0 rated</span>
+    <span class="save" id="save">Loading…</span>
+  </div>
+
+  <section class="trials" id="trials"><p class="empty">Loading clips…</p></section>
+
+  <section class="results" id="results">
+    <h2>Results</h2>
+    <p class="note" id="resultsNote">Results stay hidden while you rate, so engine names don't bias you.</p>
+    <button class="btn" id="reveal" type="button">Reveal results</button>
+    <div id="resultsBody" hidden></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const audio = new Audio();
+  let data = null, order = [], scores = {}, allRaters = [], uid = null, db = null, writing = Promise.resolve();
+  let revealed = false, playingBtn = null, playingTrack = null;
+
+  const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  function seeded(str) {           // deterministic per-listener shuffle
+    let h = 2166136261;
+    for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296;
+  }
+  function shuffle(a, rnd) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+  function buildTrials(seed) {
+    const rnd = seeded(seed);
+    const groups = new Map();
+    for (const c of data.clips) {
+      const key = c.idx + "|" + c.voice;
+      if (!groups.has(key)) groups.set(key, { idx: c.idx, voice: c.voice, clips: [] });
+      groups.get(key).clips.push(c);
+    }
+    order = shuffle([...groups.values()], rnd);
+    order.forEach((g) => shuffle(g.clips, rnd));
+  }
+
+  function render() {
+    const root = $("trials");
+    root.textContent = "";
+    for (const g of order) {
+      const card = document.createElement("article");
+      card.className = "trial";
+      const head = document.createElement("div");
+      head.className = "trial-head";
+      const s = document.createElement("p"); s.className = "sentence"; s.textContent = "« " + data.sentences[g.idx] + " »";
+      const v = document.createElement("span"); v.className = "voice"; v.textContent = g.voice === "fr_female" ? "Female voice" : "Male voice";
+      head.append(s, v);
+      const list = document.createElement("div"); list.className = "clips";
+      g.clips.forEach((c, i) => {
+        const row = document.createElement("div"); row.className = "clip";
+        const b = document.createElement("button"); b.className = "play"; b.type = "button";
+        b.textContent = String.fromCharCode(65 + i); b.setAttribute("aria-label", "Play clip " + b.textContent);
+        const tr = document.createElement("div"); tr.className = "track"; const fill = document.createElement("i"); tr.append(fill);
+        b.addEventListener("click", () => play(c.id, b, fill));
+        const rate = document.createElement("div"); rate.className = "rate"; rate.setAttribute("role", "group");
+        rate.setAttribute("aria-label", "Rate clip " + b.textContent);
+        for (let n = 1; n <= 5; n++) {
+          const r = document.createElement("button"); r.type = "button"; r.textContent = n;
+          if (scores[c.id] === n) r.classList.add("sel");
+          r.addEventListener("click", () => setScore(c.id, n, rate));
+          rate.append(r);
+        }
+        row.append(b, tr, rate); list.append(row);
+      });
+      card.append(head, list); root.append(card);
+    }
+    progress();
+  }
+
+  function play(id, btn, fill) {
+    if (playingBtn === btn && !audio.paused) { audio.pause(); return; }
+    audio.src = "clips/" + id + ".mp3";
+    if (playingBtn) playingBtn.classList.remove("on");
+    if (playingTrack) playingTrack.style.width = "0";
+    playingBtn = btn; playingTrack = fill; btn.classList.add("on");
+    audio.play().catch(() => btn.classList.remove("on"));
+  }
+  audio.addEventListener("timeupdate", () => { if (playingTrack && audio.duration) playingTrack.style.width = (100 * audio.currentTime / audio.duration) + "%"; });
+  const stop = () => { if (playingBtn) playingBtn.classList.remove("on"); };
+  audio.addEventListener("pause", stop); audio.addEventListener("ended", stop);
+
+  function progress() {
+    const n = data.clips.filter((c) => scores[c.id]).length, tot = data.clips.length;
+    $("count").textContent = n + " / " + tot + " rated";
+    $("barFill").style.width = (tot ? 100 * n / tot : 0) + "%";
+    if (n === tot && tot) $("resultsNote").textContent = "All clips rated. Reveal to see which engine is which.";
+  }
+
+  function setScore(id, n, group) {
+    scores[id] = n;
+    group.querySelectorAll("button").forEach((b) => b.classList.toggle("sel", +b.textContent === n));
+    progress();
+    lsSet("megvoice.scores", scores);
+    if (!db || !uid) return;
+    $("save").textContent = "Saving…"; $("save").classList.remove("err");
+    const snapshot = { ...scores };
+    writing = writing.then(() => db.doc("ratings/" + uid).set({ scores: snapshot, updated: new Date().toISOString() }))
+      .then(() => { $("save").textContent = "Saved"; })
+      .catch(() => { $("save").textContent = "Not saved to the shared results (kept in this browser)"; $("save").classList.add("err"); });
+  }
+
+  function decode() { return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(data.k), (c) => c.charCodeAt(0)))); }
+
+  function showResults() {
+    const { map, engines } = decode();
+    const raters = allRaters.length ? allRaters : [{ scores }];
+    const agg = {};
+    for (const r of raters) for (const [cid, s] of Object.entries(r.scores || {})) {
+      const e = map[cid]; if (!e) continue;
+      const voice = data.clips.find((c) => c.id === cid)?.voice;
+      (agg[e] ||= { all: [], fr_female: [], fr_male: [] }).all.push(s);
+      if (voice) agg[e][voice].push(s);
+    }
+    const mean = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    const sem = (a) => { if (a.length < 2) return null; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1) / a.length); };
+    const f = (x, d = 2) => x == null ? "–" : x.toFixed(d);
+    const ms = (x) => x == null ? "–" : Math.round(x * 1000) + " ms";
+    const rows = Object.keys(engines).map((e) => ({ e, ...engines[e], a: agg[e] || { all: [], fr_female: [], fr_male: [] } }))
+      .sort((x, y) => (mean(y.a.all) ?? -1) - (mean(x.a.all) ?? -1));
+    const wrap = $("resultsBody"); wrap.textContent = "";
+    const p = document.createElement("p"); p.className = "note";
+    p.textContent = raters.length + (raters.length === 1 ? " listener" : " listeners") + " so far. Naturalness is the mean 1–5 rating ± standard error. Synthesis times are from an 8 GB laptop GPU, one sentence at a time.";
+    const tw = document.createElement("div"); tw.className = "tbl-wrap";
+    const t = document.createElement("table");
+    t.innerHTML = "<thead><tr><th>Engine</th><th>Naturalness</th><th class='num'>Female</th><th class='num'>Male</th><th class='num'>Ratings</th><th class='num'>Synth / sentence</th><th class='num'>First audio</th><th class='num'>Real-time factor</th></tr></thead>";
+    const tb = document.createElement("tbody");
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      const m = mean(r.a.all);
+      const cells = [
+        r.label,
+        null,
+        f(mean(r.a.fr_female)), r.a.fr_male.length ? f(mean(r.a.fr_male)) : "n/a",
+        String(r.a.all.length), ms(r.synth_median_s), ms(r.ttfa_median_s), f(r.rtf_median, 2),
+      ];
+      cells.forEach((c, i) => {
+        const td = document.createElement("td");
+        if (i === 1) {
+          const d = document.createElement("div"); d.className = "mos";
+          const bar = document.createElement("i"); bar.style.width = (m ? 16 * m : 0) + "px";
+          const txt = document.createElement("span"); txt.className = "count";
+          txt.textContent = m == null ? "–" : f(m) + (sem(r.a.all) != null ? " ± " + f(sem(r.a.all)) : "");
+          d.append(bar, txt); td.append(d);
+        } else { td.textContent = c; if (i > 1) td.className = "num"; }
+        tr.append(td);
+      });
+      tb.append(tr);
+    }
+    t.append(tb); tw.append(t); wrap.append(p, tw); wrap.hidden = false;
+  }
+
+  $("reveal").addEventListener("click", () => {
+    revealed = !revealed;
+    $("reveal").textContent = revealed ? "Hide results" : "Reveal results";
+    if (revealed) showResults(); else $("resultsBody").hidden = true;
+  });
+
+  async function start() {
+    data = await (await fetch("clips.json")).json();
+    scores = lsGet("megvoice.scores") || {};
+    let seed = lsGet("megvoice.seed");
+    if (!seed) { seed = String(Math.random()); lsSet("megvoice.seed", seed); }
+    buildTrials(seed); render();
+    $("save").textContent = "Ratings save in this browser only";
+
+    const [dbNs, user] = await Promise.all([window.claude?.use?.("db") ?? null, window.claude?.use?.("user") ?? null]);
+    if (!dbNs || !user) return;
+    try { uid = await user.id(); } catch { uid = null; }
+    if (!uid) return;
+    db = dbNs;
+    buildTrials(uid);            // same order for this person on any device
+    const mine = await db.doc("ratings/" + uid).get().catch(() => null);
+    if (mine?.exists) scores = { ...(mine.data()?.scores || {}), ...scores };
+    render();
+    $("save").textContent = "Ratings are shared with the study team";
+    db.collection("ratings").onSnapshot((snap) => {
+      allRaters = snap.docs.map((d) => d.data());
+      if (revealed) showResults();
+    }, () => {});
+  }
+  start().catch(() => { $("trials").innerHTML = "<p class='empty'>Could not load the clips.</p>"; });
+})();
+</script>
