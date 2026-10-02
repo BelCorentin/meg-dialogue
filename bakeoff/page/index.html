@@ -226,10 +226,10 @@ th.num { text-align: right; }
       .sort((x, y) => (mean(y.a.all) ?? -1) - (mean(x.a.all) ?? -1));
     const wrap = $("resultsBody"); wrap.textContent = "";
     const p = document.createElement("p"); p.className = "note";
-    p.textContent = raters.length + (raters.length === 1 ? " listener" : " listeners") + " so far. Naturalness is the mean 1–5 rating ± standard error. Synthesis times are from an 8 GB laptop GPU, one sentence at a time.";
+    p.textContent = raters.length + (raters.length === 1 ? " listener" : " listeners") + " so far. Naturalness is the mean 1–5 rating ± standard error. Synthesis times are from an 8 GB laptop GPU, one sentence at a time. First audio is shown only for engines that stream. Word errors: Whisper's transcript of each clip against the intended sentence.";
     const tw = document.createElement("div"); tw.className = "tbl-wrap";
     const t = document.createElement("table");
-    t.innerHTML = "<thead><tr><th>Engine</th><th>Naturalness</th><th class='num'>Female</th><th class='num'>Male</th><th class='num'>Ratings</th><th class='num'>Synth / sentence</th><th class='num'>First audio</th><th class='num'>Real-time factor</th></tr></thead>";
+    t.innerHTML = "<thead><tr><th>Engine</th><th>Naturalness</th><th class='num'>Female</th><th class='num'>Male</th><th class='num'>Ratings</th><th class='num'>Synth / sentence</th><th class='num'>First audio</th><th class='num'>Real-time factor</th><th class='num'>Word errors</th></tr></thead>";
     const tb = document.createElement("tbody");
     for (const r of rows) {
       const tr = document.createElement("tr");
@@ -239,6 +239,7 @@ th.num { text-align: right; }
         null,
         f(mean(r.a.fr_female)), r.a.fr_male.length ? f(mean(r.a.fr_male)) : "n/a",
         String(r.a.all.length), ms(r.synth_median_s), ms(r.ttfa_median_s), f(r.rtf_median, 2),
+        r.wer_mean == null ? "–" : (100 * r.wer_mean).toFixed(1) + " %",
       ];
       cells.forEach((c, i) => {
         const td = document.createElement("td");

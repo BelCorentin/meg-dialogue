@@ -114,6 +114,32 @@ lands +72–87 ms after the true energy end.
 Not yet measured: acoustic end of speech vs VAD (needs forced alignment, since the injected
 recordings carry noise to file end); French; anything in the scanner.
 
+## French TTS bake-off (2026-10-02)
+
+`bakeoff/`: one venv per engine (`install.sh`), same 8 conversational sentences, same two
+CC0 French reference voices (Kyutai Unmute recordings `developpeuse-3`, `fabieng-enhanced-v2`),
+`run_all.sh` → `out/`, `intelligibility.py` (Whisper WER + speech/clip ratio),
+`build_page.py` → blind rating page (`page/`, published as an artifact with shared ratings).
+
+Laptop RTX PRO 1000 8 GB, one sentence at a time:
+
+| engine | synth / sentence | first audio | RTF | VRAM | Whisper WER | speech / clip |
+|---|---|---|---|---|---|---|
+| Kokoro 82M (current) | 0.11 s | – | 0.03 | small | 8.3 % | 0.81 |
+| XTTS-v2 | 0.97 s | **0.20 s** (streamed) | 0.25 | 2.3 GB | 3.2 % | 0.99 |
+| Qwen3-TTS 0.6B | 2.46 s | – | 0.77 | 2.8 GB | 1.4 % | 0.94 |
+| Qwen3-TTS 1.7B | 2.52 s | – | 0.84 | 4.8 GB | 2.1 % | 0.92 |
+| Chatterbox Multilingual | 2.73 s | – | 0.61 | 3.9 GB | 1.8 % | 0.79 |
+| Kyutai TTS 1.6B | 3.33 s | **0.52 s** (streamed) | 0.68 | 4.4 GB | 1.5 % | 0.90 |
+
+Only XTTS and Kyutai stream; the others must finish a sentence before it can play.
+Qwen3 needs a `max_new_tokens` cap (one sentence never ended, >10 min). Chatterbox
+watermarks its output (Perth) and pads ~20 % silence. Naturalness ratings: see the page.
+
+Install traps: coqui-tts needs `transformers<5`, `[codec]`, and `torchcodec<0.9` for
+torch 2.9; Chatterbox needs `setuptools<81` (pkg_resources); XTTS downloads to its own
+folder (`~/.local/share/tts`), not the HF cache.
+
 ## Roadmap
 
 1. **French**: Kokoro FR needs `sudo apt install espeak-ng` and has one voice. Bake off

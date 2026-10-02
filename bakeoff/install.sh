@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 declare -A PKGS=(
   [kyutai]="moshi soundfile"
   [qwen3]="qwen-tts soundfile"
-  [chatterbox]="chatterbox-tts soundfile"
+  [chatterbox]="chatterbox-tts setuptools<81 soundfile"
   [xtts]="coqui-tts[codec] transformers<5 torch torchaudio soundfile"
 )
 for e in "$@"; do
