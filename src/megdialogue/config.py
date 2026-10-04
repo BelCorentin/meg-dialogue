@@ -39,9 +39,10 @@ class LLMConfig:
 @dataclass
 class TTSConfig:
     backend: str = "kokoro"
-    voice: str = "af_heart"
-    lang_code: str = "a"  # kokoro: a=en-US, f=fr (needs espeak-ng)
+    voice: str = "af_heart"  # kokoro: preset name; xtts: path to a reference wav
+    lang_code: str = "a"  # kokoro: a=en-US, f=fr (needs espeak-ng); xtts: fr, en, …
     speed: float = 1.0
+    stream_chunk_size: int = 20  # xtts: GPT tokens per streamed chunk (smaller = earlier first audio)
     device: str = "cuda"
 
 

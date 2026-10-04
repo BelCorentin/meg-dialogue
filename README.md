@@ -53,7 +53,15 @@ uv run scripts/check_session.py runs/<session>
 
 Use wired output. Bluetooth adds 150–250 ms and stalled the stream in testing.
 
-French: `sudo apt install espeak-ng`, then `--config configs/fr_laptop.yaml`.
+French: `--config configs/fr_laptop.yaml` = XTTS-v2 cloning `voices/fr_female.wav` (CC0),
+streamed chunk by chunk. Kokoro (English config) needs `sudo apt install espeak-ng` for French.
+XTTS-v2 is under the Coqui CPML licence: research / non-commercial use only.
+
+**French + XTTS live loop** (2026-10-04, laptop, 3 injected turns): response gap
+**1.60–1.76 s** = VAD 608 + STT ~300 (int8) + LLM to first sentence 250–410 + XTTS first
+chunk ~400 ms; 0 stalls in 49 within-sentence chunk joins. On 8 GB, Whisper must run int8
+or gemma spills 45 % to CPU; even then the LLM and XTTS compete for the GPU (XTTS first
+chunk 200 ms alone, ~400 ms here).
 
 ## Offline machine
 
@@ -142,9 +150,12 @@ folder (`~/.local/share/tts`), not the HF cache.
 
 ## Roadmap
 
-1. **French**: Kokoro FR needs `sudo apt install espeak-ng` and has one voice. Bake off
-   Qwen3-TTS 0.6B/1.7B (cached; FR, voice cloning), Chatterbox multilingual, Kyutai TTS,
-   by blind listening, *through the MEG tube earphones*.
+1. **Voice**: XTTS chosen (2026-10-04). Still to do: listen *through the MEG tube
+   earphones*; pick female/male reference; optionally record a consenting real speaker.
+   **Listen while speaking**: half-duplex currently drops mic input while the bot talks, so a
+   participant who starts before the bot finishes loses their first words. With tube
+   earphones the mic hears no bot audio, so in the MEG the VAD can keep listening and
+   only defer acting until the bot is done.
 2. **Latency**: tune `vad.min_silence_ms` on trained speakers (600 → 300–400 is the biggest
    lever); a streaming STT; synth TTS while the LLM is still generating.
 3. **Conversation quality**: the 3B is bland and ignores length limits. The desktop

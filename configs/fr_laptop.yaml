@@ -1,4 +1,4 @@
-# Laptop prototype, French. Kokoro FR = one voice (ff_siwis), needs espeak-ng.
+# Laptop prototype, French. TTS = XTTS-v2 cloning a CC0 voice (won the 10-02 bake-off).
 language: fr
 
 vad:
@@ -9,7 +9,7 @@ vad:
 
 stt:
   model: large-v3-turbo
-  compute_type: float16
+  compute_type: int8_float16   # int8 weights: frees ~0.8 GB so gemma stays on GPU next to XTTS
 
 llm:
   base_url: http://localhost:11434/v1
@@ -24,12 +24,14 @@ llm:
     emojis, sans abréviations. Sois chaleureux, curieux et concret : donne un petit avis ou
     une anecdote à toi, puis pose souvent une seule question ouverte qui invite la personne
     à continuer de parler. Tutoie seulement si la personne te tutoie. Ne dis pas que tu es
-    une IA sauf si on te le demande.
+    une IA sauf si on te le demande. Ta voix est féminine : accorde au féminin quand tu
+    parles de toi (« je suis curieuse »).
 
 tts:
-  backend: kokoro
-  voice: ff_siwis
-  lang_code: f
+  backend: xtts
+  voice: voices/fr_female.wav   # or voices/fr_male.wav
+  lang_code: fr
+  stream_chunk_size: 20
   speed: 1.0
 
 audio:

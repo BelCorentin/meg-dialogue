@@ -35,11 +35,22 @@ def main() -> None:
         nz = np.flatnonzero(np.abs(out[n:n + RATE]) > 0)
         before = np.abs(out[max(0, n - 480):n]).max(initial=0)
         errs.append(nz[0] if len(nz) else -1)
-        if before > 0 and e["idx"] == 0:
+        if before > 0 and e["idx"] == 0 and e.get("chunk", 0) == 0:
             print(f"  turn {e['turn']}: output not silent before first onset ({before:.3g})")
     print(f"play onsets: {len(on)}, first non-zero sample offset from logged onset "
           f"(TTS leading silence included): median {np.median(errs) / RATE * 1000:.1f} ms, "
           f"max {max(errs) / RATE * 1000:.1f} ms")
+
+    # streamed TTS: a chunk that starts after the previous one ended = silence inside the reply (stutter)
+    off = {(e["turn"], e["idx"], e.get("chunk", 0)): e["rec_sample"] for e in ev if e["kind"] == "play_offset"}
+    stalls = []
+    for e in on:
+        prev = off.get((e["turn"], e["idx"], e.get("chunk", 0) - 1))
+        if prev is not None and e["rec_sample"] > prev:
+            stalls.append((e["rec_sample"] - prev) / RATE * 1000)
+    n_inner = sum(1 for e in on if e.get("chunk", 0) > 0)
+    print(f"within-sentence chunk joins: {n_inner}, stalls: {len(stalls)}"
+          + (f" (median {np.median(stalls):.0f} ms, max {max(stalls):.0f} ms)" if stalls else ""))
 
     turns = {e["turn"]: e for e in ev if e["kind"] == "user_turn"}
     by = lambda k: {e["turn"]: e for e in ev if e["kind"] == k}  # noqa: E731
@@ -47,9 +58,10 @@ def main() -> None:
     for e in ev:
         if e["kind"] == "llm_sentence" and e["idx"] == 0:
             first_sent[e["turn"]] = e
-        if e["kind"] == "tts_done" and e["idx"] == 0:
+        # streamed TTS: time to the first chunk is what delays the sound
+        if e["kind"] in ("tts_first_chunk", "tts_done") and e["idx"] == 0 and e["turn"] not in tts0:
             tts0[e["turn"]] = e
-    onset0 = {e["turn"]: e for e in on if e["idx"] == 0}
+    onset0 = {e["turn"]: e for e in on if e["idx"] == 0 and e.get("chunk", 0) == 0}
     env = np.sqrt(np.convolve(mic ** 2, np.ones(480) / 480, "same"))  # 10 ms RMS
     print("\nturn | mic energy end vs logged speech end | VAD wait | STT | LLM→1st sentence | TTS | →out | total gap")
     for t, u in turns.items():

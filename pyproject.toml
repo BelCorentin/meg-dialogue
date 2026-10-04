@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "coqui-tts[codec]>=0.27",
     "en-core-web-sm",
     "faster-whisper>=1.2.1",
     "jiwer>=4.0.0",
@@ -20,6 +21,9 @@ dependencies = [
     "sounddevice>=0.5.6",
     "soundfile>=0.14.0",
     "torch>=2.9,<2.10",
+    "torchaudio==2.9.1",
+    "torchcodec>=0.8,<0.9",
+    "transformers>=4.43,<5",
 ]
 
 [build-system]

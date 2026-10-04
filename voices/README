@@ -1,0 +1,3 @@
+CC0 reference voices for XTTS cloning, from Kyutai Unmute (huggingface.co/kyutai/tts-voices,
+unmute-prod-website/): fr_female = developpeuse-3.wav, fr_male = fabieng-enhanced-v2.wav.
+Licence per that repo README: Kyutai own recordings, CC0.

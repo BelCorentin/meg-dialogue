@@ -36,9 +36,14 @@ def respond(text: str, llm: ChatLLM, tts, audio: DuplexAudio, log: EventLog, tur
     for k, sent in enumerate(llm.stream_sentences(text, on_first_token=lambda: log.log("llm_first_token", turn=turn_id))):
         log.log("llm_sentence", turn=turn_id, idx=k, text=sent)
         print(f"bot: {sent}")
-        wav, dt = tts.synth(sent)
-        log.log("tts_done", turn=turn_id, idx=k, synth_s=round(dt, 4), dur_s=round(len(wav) / tts.rate, 3))
-        audio.play(wav, tts.rate, {"turn": turn_id, "idx": k, "text": sent})
+        t0, dur = time.perf_counter(), 0
+        for c, chunk in enumerate(tts.stream(sent)):  # play each chunk as soon as it exists
+            if c == 0:
+                log.log("tts_first_chunk", turn=turn_id, idx=k, synth_s=round(time.perf_counter() - t0, 4))
+            audio.play(chunk, tts.rate, {"turn": turn_id, "idx": k, "chunk": c, "text": sent})
+            dur += len(chunk)
+        log.log("tts_done", turn=turn_id, idx=k, synth_s=round(time.perf_counter() - t0, 4),
+                dur_s=round(dur / tts.rate, 3), chunks=c + 1 if dur else 0)
         n += 1
     if not n:
         log.log("llm_empty", turn=turn_id)
@@ -102,7 +107,7 @@ def main() -> None:
                         log.log("xrun", status=payload[0], rec_sample=payload[1])
                         continue
                     meta, n = payload
-                    ev = dict(turn=meta["turn"], idx=meta["idx"], rec_sample=n)
+                    ev = dict(turn=meta["turn"], idx=meta["idx"], chunk=meta.get("chunk", 0), rec_sample=n)
                     if kind == "onset" and meta["idx"] == 0 and meta["turn"] in speech_end:
                         gap = (n - speech_end.pop(meta["turn"])) / RATE
                         ev["gap_s"] = round(gap, 4)  # end of speech → first output sample, same clock
