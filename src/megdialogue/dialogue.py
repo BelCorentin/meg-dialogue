@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import os
+import re
 import threading
 import time
 from pathlib import Path
@@ -32,8 +33,14 @@ from .vad import TurnDetector
 
 def respond(text: str, llm: ChatLLM, tts, audio: DuplexAudio, log: EventLog, turn_id: int) -> None:
     log.log("llm_request", turn=turn_id)
+    speak(llm.stream_sentences(text, on_first_token=lambda: log.log("llm_first_token", turn=turn_id)),
+          tts, audio, log, turn_id)
+
+
+def speak(sentences, tts, audio: DuplexAudio, log: EventLog, turn_id: int) -> None:
+    """Synthesize sentences one by one, queueing each audio chunk for playback as it is generated."""
     n = 0
-    for k, sent in enumerate(llm.stream_sentences(text, on_first_token=lambda: log.log("llm_first_token", turn=turn_id))):
+    for k, sent in enumerate(sentences):
         log.log("llm_sentence", turn=turn_id, idx=k, text=sent)
         print(f"bot: {sent}")
         t0, dur = time.perf_counter(), 0
@@ -55,6 +62,7 @@ def main() -> None:
     ap.add_argument("--inject", nargs="*", default=[],
                     help="wavs mixed into the mic, one every --inject-every s (repeatable test without a speaker)")
     ap.add_argument("--inject-every", type=float, default=15.0)
+    ap.add_argument("--inject-start", type=float, default=2.0, help="seconds before the first injected wav")
     ap.add_argument("--mute-mic", action="store_true", help="ignore the real mic (use with --inject)")
     a = ap.parse_args()
     cfg = Config.load(a.config)
@@ -66,12 +74,12 @@ def main() -> None:
         import soundfile as sf
         from scipy.signal import resample_poly
 
-        inject = np.zeros(int(RATE * (2 + a.inject_every * len(a.inject))), np.float32)
+        inject = np.zeros(int(RATE * (a.inject_start + a.inject_every * len(a.inject))), np.float32)
         for i, p in enumerate(a.inject):
             x, sr = sf.read(p, dtype="float32", always_2d=True)
             g = np.gcd(RATE, sr)
             x = resample_poly(x.mean(1), RATE // g, sr // g).astype(np.float32)
-            s = int(RATE * (2 + a.inject_every * i))
+            s = int(RATE * (a.inject_start + a.inject_every * i))
             inject[s:s + len(x)] += x[: len(inject) - s]
 
     run = Path(cfg.runs_dir) / time.strftime("%Y%m%d_%H%M%S")
@@ -85,7 +93,7 @@ def main() -> None:
     llm = ChatLLM(cfg.llm)
     llm.warm()  # load + pin in VRAM, and prime the system-prompt cache
     vad = TurnDetector(cfg.vad)
-    log.log("models_loaded")
+    log.log("models_loaded", llm_gpu_fraction=getattr(llm, "gpu_fraction", None))
 
     worker: threading.Thread | None = None
     speech_end: dict[int, int] = {}  # turn → rec_sample of end of user speech
@@ -93,12 +101,18 @@ def main() -> None:
     audio = DuplexAudio(run / "session.wav", cfg.audio.block, cfg.audio.input_device, inject=inject,
                         mute_mic=a.mute_mic)
     if a.inject:
-        log.log("inject", files=a.inject, every_s=a.inject_every, first_rec_sample=2 * RATE)
+        log.log("inject", files=a.inject, every_s=a.inject_every, first_rec_sample=int(a.inject_start * RATE))
     print(f"listening — speak (Ctrl+C to stop). Logging to {run}")
     try:
         with audio:
             lat_in, lat_out = audio.latency
             log.log("stream_started", rate=RATE, latency_in=lat_in, latency_out=lat_out)
+            if cfg.opening:  # the bot greets first (turn 0), and remembers that it did
+                llm.history.append({"role": "assistant", "content": cfg.opening})
+                log.log("opening", turn=0, text=cfg.opening)
+                sents = [s for s in re.split(r"(?<=[.!?…])\s+", cfg.opening.strip()) if s]
+                worker = threading.Thread(target=speak, args=(sents, tts, audio, log, 0), daemon=True)
+                worker.start()
             while True:
                 block = audio.read16k()
                 while not audio.events.empty():

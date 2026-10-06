@@ -28,6 +28,12 @@ def main() -> None:
             snapshot_download("hexgrad/Kokoro-82M", allow_patterns=["*.json", "*.pth"])
             hf_hub_download("hexgrad/Kokoro-82M", f"voices/{c.tts.voice}.pt")
             print(f"TTS  kokoro voice {c.tts.voice}")
+        if c.tts.backend == "xtts":
+            os.environ.setdefault("COQUI_TOS_AGREED", "1")  # CPML: research / non-commercial use
+            from TTS.utils.manage import ModelManager
+
+            path = ModelManager().download_model("tts_models/multilingual/multi-dataset/xtts_v2")[0]
+            print(f"TTS  xtts-v2 → {path} (Coqui's own folder, not the HF cache)")
         if "11434" in c.llm.base_url:
             subprocess.run(["ollama", "pull", c.llm.model], check=True)
             print(f"LLM  ollama {c.llm.model}")

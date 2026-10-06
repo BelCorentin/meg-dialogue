@@ -33,6 +33,17 @@ class ChatLLM:
             body = json.dumps({"model": self.cfg.model, "keep_alive": -1}).encode()
             req = urllib.request.Request(url, body, {"Content-Type": "application/json"})
             urllib.request.urlopen(req, timeout=300).read()
+            # Ollama places the model when it loads it; if VRAM is short it silently puts layers on
+            # the CPU and replies get ~10x slower (seen: 89 % CPU, 29 s to first token).
+            ps = json.loads(urllib.request.urlopen(url.removesuffix("/generate") + "/ps", timeout=10).read())
+            for m in ps.get("models", []):
+                if m.get("name", "").startswith(self.cfg.model) and m.get("size"):
+                    gpu = m.get("size_vram", 0) / m["size"]
+                    if gpu < 0.99:
+                        print(f"\n!! WARNING: {self.cfg.model} is only {gpu:.0%} on the GPU, the rest on CPU: replies "
+                              f"will be slow. Free VRAM (another session?), run `ollama stop {self.cfg.model}`, "
+                              "and restart.\n", flush=True)
+                    self.gpu_fraction = gpu
         self.client.chat.completions.create(model=self.cfg.model, max_tokens=1,
                                             messages=self.history + [{"role": "user", "content": "Bonjour."}])
 

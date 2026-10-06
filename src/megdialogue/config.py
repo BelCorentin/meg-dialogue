@@ -64,6 +64,7 @@ class Config:
     tts: TTSConfig = field(default_factory=TTSConfig)
     audio: AudioConfig = field(default_factory=AudioConfig)
     runs_dir: str = "runs"
+    opening: str = ""  # what the bot says first, before the participant speaks ("" = wait for them)
     offline: bool = True  # HF_HUB_OFFLINE=1: a missing model fails at startup, never downloads mid-session
 
     @classmethod
